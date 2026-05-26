@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GNTX973GET"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GNTX973GET');
+    </script>
+  <title>もふもふ相談室 ☁️</title>
+  
+  <!-- 🔍 メタタグ & OGP設定 -->
+  <meta name="description" content="もふみつ工房・類型note・アメブロの総合お題箱＆匿名ミニDM相談室。お返事は自分専用のお部屋から確認できます🧸">
+  <meta property="og:title" content="もふもふ相談室 ☁️">
+  <meta property="og:description" content="もふみつ工房・類型note・アメブロの総合お題箱＆匿名ミニDM相談室。お部屋からお返事のやり取りができます🧸">
+  <meta property="og:image" content="https://mofu-mitsu.github.io/mofumofu-room/ogp.png">
+  <meta property="og:url" content="https://mofu-mitsu.github.io/mofumofu-room/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- ☁️ 絵文字favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☁️</text></svg>">
+
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  
+  <div class="header">
+    <h1><i class="fa-solid fa-cloud"></i> もふもふ相談室 <i class="fa-solid fa-cloud"></i></h1>
+    <p>ご質問・感想・みんなの掲示板やアンケートなど！</p>
+  </div>
+
+  <!-- タブボタン -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-form">
+      <i class="fa-solid fa-pen-nib"></i> 新しく送る
+    </button>
+    <button class="tab-btn" id="tab-board" style="display: none;">
+      <i class="fa-solid fa-comments"></i> 掲示板
+    </button>
+    <button class="tab-btn" id="tab-survey">
+      <i class="fa-solid fa-chart-simple"></i> アンケート
+    </button>
+    <button class="tab-btn" id="tab-room">
+      <i class="fa-solid fa-door-open"></i> お部屋確認
+    </button>
+  </div>
+
+  <!-- 📥 ① お問い合わせフォーム -->
+  <div id="form-section" class="card active">
+    <form id="contact-form">
+      
+      <!-- STEP 1 -->
+      <div id="step-1" class="step active">
+        <div class="step-title"><i class="fa-solid fa-map-location-dot"></i> Step 1. どこから来ましたか？</div>
+        <div class="choice-grid">
+          <label class="choice-label">
+            <input type="radio" name="origin" value="mofumitsu" required>
+            <span class="choice-icon" style="color:var(--primary-color)">🌸</span> もふみつ工房（創作・ツール）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="note">
+            <span class="choice-icon" style="color:var(--note-color)">🧠</span> 類型note（MBTI・ソシオ等）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="ameblo">
+            <span class="choice-icon" style="color:var(--secondary-color)">☁️</span> アメブロ（エルネア・日常）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="other">
+            <span class="choice-icon" style="color:#a9a9a9">✨</span> その他・よくわからない
+          </label>
+        </div>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-next" id="btn-step1-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="step-2" class="step">
+        <div class="step-title"><i class="fa-solid fa-tag"></i> Step 2. どんな用途ですか？</div>
+        <div class="choice-grid" id="category-choices">
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="question" required>
+            <span class="choice-icon">💌</span> 管理人への質問・相談
+          </label>
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="feedback">
+            <span class="choice-icon">🌸</span> 感想・メッセージ
+          </label>
+          
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="typing-lost">
+            <span class="choice-icon" style="color:var(--note-color)">🧠</span> 類型迷子・自認タイプ相談
+          </label>
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="public-board">
+            <span class="choice-icon" style="color:var(--note-color)">📢</span> 公開掲示板に投稿する
+          </label>
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="note-request">
+            <span class="choice-icon" style="color:var(--note-color)">📝</span> noteの記事リクエスト
+          </label>
+
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="bug">
+            <span class="choice-icon">🛠️</span> バグ報告・ご要望
+          </label>
+        </div>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step2-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="button" class="btn btn-next" id="btn-step2-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="step-3" class="step">
+        <div class="step-title"><i class="fa-solid fa-message"></i> Step 3. メッセージ内容</div>
+        <textarea name="message" id="message-box" placeholder="ここになんでも書いてね！" required></textarea>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step3-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="button" class="btn btn-next" id="btn-step3-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div id="step-4" class="step">
+        <div class="step-title"><i class="fa-solid fa-reply"></i> Step 4. 返信と通知の希望</div>
+        <div class="choice-grid" id="reply-choices">
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="none" required checked>
+            <span class="choice-icon">👻</span> 完全匿名（返信・やり取り不要）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="site">
+            <span class="choice-icon">🚪</span> サイト内でお部屋を作る（ミニDM）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="email">
+            <span class="choice-icon">📧</span> メール等で直接返信がほしい
+          </label>
+        </div>
+
+        <div id="site-options" style="margin-top: 15px; display: none; background: #fdfafb; padding: 15px; border-radius: 15px;">
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark);">🔑 お部屋の合言葉（必須）</label>
+          <span class="hint-text">後でお部屋を確認する時に使います！</span>
+          <input type="text" name="password" placeholder="例: mofumofu123">
+          
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark); margin-top:10px; display:block;">🔔 通知用メールアドレス（任意）</label>
+          <span class="hint-text">管理人が返答した際、通知メールを受け取りたい場合は入力してね。</span>
+          <input type="email" name="notify_email" placeholder="通知用メールアドレス">
+        </div>
+
+        <div id="email-options" style="margin-top: 15px; display: none; background: #fdfafb; padding: 15px; border-radius: 15px;">
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark);">📫 連絡先（必須）</label>
+          <span class="hint-text">返信先のメールアドレスやSNSアカウント等</span>
+          <input type="text" name="contact" placeholder="連絡先を入力">
+        </div>
+
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step4-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="submit" class="btn btn-next" style="background:#ff9db0;"><i class="fa-solid fa-paper-plane"></i> 送信する！</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- 📢 ② 公開掲示板セクション -->
+  <div id="board-section" class="card">
+    <div class="step-title"><i class="fa-solid fa-comments"></i> 類型note公開スレッド</div>
+    <p style="font-size: 0.85rem; color:#887a7e; margin-bottom: 15px;">類型note界隈のみんなで、自由に匿名で議論・リプライをぶら下げられる場所だよ！</p>
+    <div id="board-posts-list" class="board-posts-list"></div>
+  </div>
+
+  <!-- 📊 ③ アンケートセクション -->
+  <div id="survey-section" class="card">
+    <div class="survey-tabs">
+      <button class="survey-tab-btn active" id="subtab-list">アンケート一覧</button>
+      <button class="survey-tab-btn" id="subtab-create">アンケートを作る</button>
+    </div>
+    <div id="survey-list-container" class="survey-sub-content active">
+      <p style="font-size: 0.9rem; color:#887a7e; text-align:center;">みんなが作ったアンケートだよ！投票すると結果が分かります📊</p>
+      <div id="survey-list" class="survey-list"></div>
+    </div>
+    <div id="survey-create-container" class="survey-sub-content">
+      <div class="step-title"><i class="fa-solid fa-square-poll-horizontal"></i> 新しいアンケートを作成</div>
+      <div class="form-group">
+        <label>アンケートのテーマ（質問タイトル）</label>
+        <input type="text" id="new-survey-title" placeholder="例: あなたの自認タイプは？" required>
+      </div>
+      <div class="form-group">
+        <label>投票の選択肢</label>
+        <div id="survey-options-inputs">
+          <input type="text" class="survey-opt-input" placeholder="選択肢1" required>
+          <input type="text" class="survey-opt-input" placeholder="選択肢2" required>
+        </div>
+        <button type="button" class="btn-add-opt" id="btn-add-survey-opt"><i class="fa-solid fa-plus"></i> 選択肢を追加</button>
+      </div>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="choice-label" style="padding: 10px 15px; font-weight: normal; font-size: 0.9rem;">
+          <input type="checkbox" id="new-survey-public" checked style="display:inline-block; margin-right: 8px;">
+          このアンケートをサイト内の一覧に全体公開する
+        </label>
+        <span class="hint-text">※チェックを外すと一覧に表示されず、リンクを知っている人だけが投票できます。</span>
+      </div>
+      <button type="button" class="btn btn-next" id="btn-submit-new-survey"><i class="fa-solid fa-circle-check"></i> アンケートを公開する</button>
+    </div>
+  </div>
+
+  <!-- 🚪 ④ お部屋確認（ログイン） -->
+  <div id="login-section" class="card">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2><i class="fa-solid fa-door-closed"></i> お部屋に入室</h2>
+      <p>発行された番号と合言葉を入力してね！</p>
+      <p style="font-size:0.75rem; color:#aaa;">(※管理人はIDにADMIN、パスワードに管理者パスワードを入力してね)</p>
+    </div>
+    <form id="login-form">
+      <div class="form-group">
+        <label>お問い合わせ番号</label>
+        <input type="text" id="login-id" placeholder="例: MFM-12345" required>
+      </div>
+      <div class="form-group">
+        <label>お部屋の合言葉（パスワード）</label>
+        <input type="password" id="login-pass" placeholder="合言葉" required>
+      </div>
+      <button type="submit" class="btn btn-next btn-secondary"><i class="fa-solid fa-key"></i> 扉をあける</button>
+    </form>
+  </div>
+
+  <!-- ⚙️ ⑤ 管理者専用ダッシュボード（追加！） -->
+  <div id="admin-section" class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 style="margin:0; color:var(--note-color);"><i class="fa-solid fa-user-gear"></i> 管理者ダッシュボード</h3>
+      <button id="btn-admin-logout" style="background:none; border:none; color:#887a7e; cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</button>
+    </div>
+    <p style="font-size:0.85rem; color:#887a7e;">届いているお問い合わせ一覧だよ。各項目をタップするとお部屋に入ってチャット返信できます🧸</p>
+    <div id="admin-inquiries-list" style="display:flex; flex-direction:column; gap:10px;">
+      <!-- お問い合わせ一覧が動的に並ぶよ -->
+    </div>
+  </div>
+
+  <!-- 💬 ⑥ お部屋画面（チャットルーム） -->
+  <div id="room-section" class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h3 style="margin:0; color: var(--secondary-color);"><i class="fa-solid fa-door-open"></i> <span id="room-title-id">MFM-12345</span></h3>
+      <button id="btn-leave-room" style="background:none; border:none; color:#887a7e; cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i> 退出する</button>
+    </div>
+    <div class="chat-window" id="chat-window-box"></div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" placeholder="メッセージを追加する...">
+      <button type="button" id="btn-send-chat"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
+
+  <!-- 🎉 ⑦ 送信完了画面（ミニDM用お部屋番号付き） -->
+  <div id="success-site-section" class="card">
+    <div style="text-align: center;">
+      <i class="fa-solid fa-door-open" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 10px;"></i>
+      <h2>お部屋ができました！🧸</h2>
+      <p>あなた専用の「お問い合わせ番号」です！<br>返信を確認する時に必要になるのでコピーしてね📝</p>
+      <div class="copy-container">
+        <div class="id-box" id="generated-id">MFM-00000</div>
+        <button type="button" class="btn-copy" id="btn-copy-id" title="コピーする"><i class="fa-solid fa-copy"></i> コピー</button>
+      </div>
+      <button class="btn btn-next btn-secondary" style="width:100%; margin-top: 15px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+    </div>
+  </div>
+
+  <!-- 🎉 ⑧ 送信完了画面（通常の返信不要/メール用）（追加！） -->
+  <div id="success-normal-section" class="card">
+    <div style="text-align: center;">
+      <i class="fa-solid fa-paper-plane" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 10px;"></i>
+      <h2>送信完了しました！🌸</h2>
+      <p>管理人へメッセージを大切にお届けしました！<br>確認するまで、のんびり待っててね☁️</p>
+      <button class="btn btn-next" style="width:100%; margin-top: 25px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ☁️ 自作の確認モーダル -->
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h3><i class="fa-solid fa-triangle-exclamation" style="color: #ff9494;"></i> 本当に消しちゃう？</h3>
+    <p id="confirm-modal-message">この投稿を削除すると元に戻せないよ！</p>
+    <div class="modal-buttons">
+      <button class="btn btn-back" id="confirm-cancel-btn">やめとく</button>
+      <button class="btn btn-next" id="confirm-ok-btn" style="background:#ff9494; box-shadow: 0 4px 0 #ff5e5e;">消しちゃう🧹</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
