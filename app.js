@@ -1,773 +1,303 @@
-// ------------------------------------------
-// ☁️ GAS連携用の設定
-// ------------------------------------------
-// ★デプロイして取得したGASの「ウェブアプリのURL」をここに貼り付けてね！
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwkhgd_GJ8sYTpmaeWZrz8RD7i74GCb_eYaALj_EaCEVK84QEKVdix1BZRLBf2wiCg/exec"; 
-
-// 現在お部屋にログインしている情報（退出したら消えます）
-let currentRoomId = null;
-let currentRoomPass = null;
-let isAdminMode = false; // 管理者として入室しているかフラグ
-
-// --- 🔔 トースト通知関数 ---
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GNTX973GET"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GNTX973GET');
+    </script>
+  <title>もふもふ相談室 ☁️</title>
   
-  let icon = '<i class="fa-solid fa-circle-info"></i>';
-  if (type === 'success') icon = '<i class="fa-solid fa-circle-check"></i>';
-  if (type === 'error') icon = '<i class="fa-solid fa-circle-exclamation"></i>';
+  <!-- 🔍 メタタグ & OGP設定 -->
+  <meta name="description" content="もふみつ工房・類型note・アメブロの総合お題箱＆匿名ミニDM相談室。お返事は自分専用のお部屋から確認できます🧸">
+  <meta property="og:title" content="もふもふ相談室 ☁️">
+  <meta property="og:description" content="もふみつ工房・類型note・アメブロの総合お題箱＆匿名ミニDM相談室。お部屋からお返事のやり取りができます🧸">
+  <meta property="og:image" content="https://mofu-mitsu.github.io/mofumofu-room/ogp.png">
+  <meta property="og:url" content="https://mofu-mitsu.github.io/mofumofu-room/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- ☁️ 絵文字favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☁️</text></svg>">
+
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
   
-  toast.innerHTML = `${icon} <span>${message}</span>`;
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.classList.add('fade-out');
-    toast.addEventListener('animationend', () => {
-      toast.remove();
-    });
-  }, 3000);
-}
+  <div class="header">
+    <h1><i class="fa-solid fa-cloud"></i> もふもふ相談室 <i class="fa-solid fa-cloud"></i></h1>
+    <p>ご質問・感想・みんなの掲示板やアンケートなど！</p>
+  </div>
 
-// --- 🌐 GAS通信用の共通関数 ---
-async function callGAS(data) {
-  if (!GAS_API_URL || GAS_API_URL.startsWith("ここに")) {
-    showToast("GASのウェブアプリURLが設定されていないよ！", "error");
-    return { status: "error", message: "URL未設定" };
-  }
-  try {
-    const response = await fetch(GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "text/plain" }
-    });
-    return await response.json();
-  } catch (err) {
-    showToast("GASとの接続に失敗しました…", "error");
-    return { status: "error", message: err.toString() };
-  }
-}
+  <!-- タブボタン -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-form">
+      <i class="fa-solid fa-pen-nib"></i> 新しく送る
+    </button>
+    <button class="tab-btn" id="tab-board" style="display: none;">
+      <i class="fa-solid fa-comments"></i> 掲示板
+    </button>
+    <button class="tab-btn" id="tab-survey">
+      <i class="fa-solid fa-chart-simple"></i> アンケート
+    </button>
+    <button class="tab-btn" id="tab-room">
+      <i class="fa-solid fa-door-open"></i> お部屋確認
+    </button>
+  </div>
 
-// --- 💬 自作確認モーダル ---
-let confirmCallback = null;
-
-function showConfirmModal(message, callback) {
-  const modal = document.getElementById('confirm-modal');
-  document.getElementById('confirm-modal-message').textContent = message;
-  modal.classList.add('active');
-  confirmCallback = callback;
-}
-
-document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
-  document.getElementById('confirm-modal').classList.remove('active');
-  confirmCallback = null;
-});
-
-document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-  if (confirmCallback) confirmCallback();
-  document.getElementById('confirm-modal').classList.remove('active');
-  confirmCallback = null;
-});
-
-
-// --- 📱 タブ切り替え制御 ---
-function switchTab(sectionId) {
-  document.querySelectorAll('.card').forEach(card => card.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  
-  document.getElementById(sectionId).classList.add('active');
-  
-  if (sectionId === 'form-section' || sectionId === 'success-site-section' || sectionId === 'success-normal-section') {
-    document.getElementById('tab-form').classList.add('active');
-  } else if (sectionId === 'board-section') {
-    document.getElementById('tab-board').classList.add('active');
-    loadBoardPosts();
-  } else if (sectionId === 'survey-section') {
-    document.getElementById('tab-survey').classList.add('active');
-    loadSurveys(); 
-  } else if (sectionId === 'login-section' || sectionId === 'room-section' || sectionId === 'admin-section') {
-    document.getElementById('tab-room').classList.add('active');
-  }
-}
-
-document.getElementById('tab-form').onclick = () => switchTab('form-section');
-document.getElementById('tab-board').onclick = () => switchTab('board-section');
-document.getElementById('tab-survey').onclick = () => switchTab('survey-section');
-document.getElementById('tab-room').onclick = () => switchTab('login-section');
-
-
-// --- 📥 ステップ遷移と分岐処理 ---
-function nextStep(step) {
-  const nextBtn = document.getElementById('btn-step3-next');
-  nextBtn.innerHTML = '次へ <i class="fa-solid fa-chevron-right"></i>';
-  nextBtn.onclick = () => nextStep(4);
-
-  if (step === 2) {
-    const origin = document.querySelector('input[name="origin"]:checked');
-    if (!origin) { showToast("どこから来たか教えてね！", "error"); return; }
-  }
-  
-  if (step === 3) {
-    const category = document.querySelector('input[name="category"]:checked');
-    if (!category) { showToast("用途を選んでね！", "error"); return; }
-    
-    const msgBox = document.getElementById('message-box');
-    
-    if (category.value === 'public-board') {
-      nextBtn.innerHTML = '掲示板に投稿する <i class="fa-solid fa-paper-plane"></i>';
-      nextBtn.onclick = submitToBoard;
-      msgBox.placeholder = "議論したいテーマや意見を自由に書いてね！（自動で掲示板に掲載されます）";
-    } else {
-      if (category.value === 'typing-lost') {
-        msgBox.placeholder = "【類型迷子 相談用テンプレート】\n◆ 自認の候補（迷っているタイプ）：\n◆ 他の人によく言われるタイプ：\n◆ 自分のここが〇〇っぽいと思うポイント：\n◆ 逆に、ここが〇〇と違って違和感があるポイント：\n\nここに自由に書いて送ってね！";
-      } else if (category.value === 'note-request') {
-        msgBox.placeholder = "例：『INTPの〇〇について詳しく解説して欲しいです！』『ソシオの相性論について記事を書いて欲しい！』など、リクエストを自由に書いてね！";
-      } else {
-        msgBox.placeholder = "ここになんでも書いてね！";
-      }
-    }
-  }
-  
-  if (step === 4) {
-    const msg = document.getElementById('message-box').value;
-    if (msg.trim() === "") { showToast("メッセージを入力してね！", "error"); return; }
-  }
-
-  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-  document.getElementById('step-' + step).classList.add('active');
-}
-
-function prevStep(step) {
-  const nextBtn = document.getElementById('btn-step3-next');
-  nextBtn.innerHTML = '次へ <i class="fa-solid fa-chevron-right"></i>';
-  nextBtn.onclick = () => nextStep(4);
-
-  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-  document.getElementById('step-' + step).classList.add('active');
-}
-
-document.getElementById('btn-step1-next').onclick = () => nextStep(2);
-document.getElementById('btn-step2-back').onclick = () => prevStep(1);
-document.getElementById('btn-step2-next').onclick = () => nextStep(3);
-document.getElementById('btn-step3-back').onclick = () => prevStep(2);
-document.getElementById('btn-step4-back').onclick = () => prevStep(3);
-
-function updateStep2() {
-  const origin = document.querySelector('input[name="origin"]:checked').value;
-  const noteOpts = document.querySelectorAll('.note-opt');
-  const boardTab = document.getElementById('tab-board');
-  
-  const checkedCat = document.querySelector('input[name="category"]:checked');
-  if (checkedCat) checkedCat.checked = false;
-
-  if (origin === 'note') {
-    noteOpts.forEach(el => el.classList.remove('hidden-option'));
-    boardTab.style.display = 'flex'; 
-    showToast("類型note専用の公開掲示板が解放されたよ！📢", "info");
-  } else {
-    noteOpts.forEach(el => el.classList.add('hidden-option'));
-    boardTab.style.display = 'none'; 
-  }
-}
-document.querySelectorAll('input[name="origin"]').forEach(radio => {
-  radio.addEventListener('change', updateStep2);
-});
-
-function updateReplyOptions() {
-  const replyType = document.querySelector('input[name="reply-type"]:checked').value;
-  const siteOpts = document.getElementById('site-options');
-  const emailOpts = document.getElementById('email-options');
-  const passInput = document.querySelector('input[name="password"]');
-  const contactInput = document.querySelector('input[name="contact"]');
-
-  siteOpts.style.display = 'none';
-  emailOpts.style.display = 'none';
-  passInput.removeAttribute('required');
-  contactInput.removeAttribute('required');
-
-  if (replyType === 'site') {
-    siteOpts.style.display = 'block';
-    passInput.setAttribute('required', 'true');
-  } else if (replyType === 'email') {
-    emailOpts.style.display = 'block';
-    contactInput.setAttribute('required', 'true');
-  }
-}
-document.querySelectorAll('input[name="reply-type"]').forEach(radio => {
-  radio.addEventListener('change', updateReplyOptions);
-});
-
-
-// --- 🔒 削除機能用：自分が投稿したIDリスト ---
-function getMyPostIds() {
-  const ids = localStorage.getItem('mofu_my_post_ids');
-  return ids ? JSON.parse(ids) : [];
-}
-function addMyPostId(id) {
-  const ids = getMyPostIds();
-  ids.push(id);
-  localStorage.setItem('mofu_my_post_ids', JSON.stringify(ids));
-}
-
-
-// --- 📢 公開掲示板機能（GAS連動） ---
-async function loadBoardPosts() {
-  const container = document.getElementById('board-posts-list');
-  container.innerHTML = "<p style='text-align:center;'>ロード中...☁️</p>";
-  
-  const res = await callGAS({ action: "getBoardPosts" });
-  if (res.status !== "success") {
-    container.innerHTML = "<p style='text-align:center;'>掲示板の読み込みに失敗しました。</p>";
-    return;
-  }
-
-  const posts = res.posts;
-  const myPostIds = getMyPostIds();
-  container.innerHTML = "";
-  
-  if (posts.length === 0) {
-    container.innerHTML = "<p style='text-align:center; color:#887a7e;'>まだスレッドはありません。</p>";
-    return;
-  }
-  
-  posts.slice().reverse().forEach(post => {
-    const el = document.createElement('div');
-    el.className = 'board-post';
-    
-    const deleteBtnHtml = myPostIds.includes(post.id) 
-      ? `<button class="btn-delete" onclick="deleteBoardPost(${post.id})" title="このスレッドを削除"><i class="fa-solid fa-trash-can"></i></button>`
-      : '';
-
-    let repliesHtml = "";
-    if (post.replies && post.replies.length > 0) {
-      repliesHtml += `<div class="replies-container">`;
-      post.replies.forEach(reply => {
-        const replyDeleteBtn = myPostIds.includes(reply.id)
-          ? `<button class="btn-delete" onclick="deleteReply(${post.id}, ${reply.id})" style="font-size:0.8rem;" title="この返信を削除"><i class="fa-solid fa-trash-can"></i></button>`
-          : '';
-          
-        repliesHtml += `
-          <div class="reply-item">
-            <div class="reply-header">
-              <span>匿名返信 💭</span>
-              <div>
-                <span>${reply.date}</span>
-                ${replyDeleteBtn}
-              </div>
-            </div>
-            <div class="reply-body">${escapeHTML(reply.text)}</div>
-          </div>
-        `;
-      });
-      repliesHtml += `</div>`;
-    }
-
-    el.innerHTML = `
-      <div class="board-post-header">
-        <span>匿名スレッド 📢</span>
-        <div>
-          <span style="margin-right:8px;">${post.date}</span>
-          ${deleteBtnHtml}
+  <!-- 📥 ① お問い合わせフォーム -->
+  <div id="form-section" class="card active">
+    <form id="contact-form">
+      
+      <!-- STEP 1 -->
+      <div id="step-1" class="step active">
+        <div class="step-title"><i class="fa-solid fa-map-location-dot"></i> Step 1. どこから来ましたか？</div>
+        <div class="choice-grid">
+          <label class="choice-label">
+            <input type="radio" name="origin" value="mofumitsu" required>
+            <span class="choice-icon" style="color:var(--primary-color)">🌸</span> もふみつ工房（創作・ツール）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="note">
+            <span class="choice-icon" style="color:var(--note-color)">🧠</span> 類型note（MBTI・ソシオ等）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="ameblo">
+            <span class="choice-icon" style="color:var(--secondary-color)">☁️</span> アメブロ（エルネア・日常）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="origin" value="other">
+            <span class="choice-icon" style="color:#a9a9a9">✨</span> その他・よくわからない
+          </label>
+        </div>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-next" id="btn-step1-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
         </div>
       </div>
-      <div class="board-post-body">${escapeHTML(post.text)}</div>
-      ${repliesHtml}
-      <form class="reply-form" onsubmit="submitReply(event, ${post.id})">
-        <input type="text" id="reply-input-${post.id}" placeholder="このスレに匿名返信する..." required>
-        <button type="submit" class="btn-reply-send">返信する</button>
-      </form>
-    `;
-    container.appendChild(el);
-  });
-}
 
-async function submitToBoard() {
-  const msg = document.getElementById('message-box').value;
-  if (msg.trim() === "") { showToast("投稿内容を入力してね！", "error"); return; }
-  
-  const newId = Date.now();
-  showToast("投稿中...☁️", "info");
-  
-  const res = await callGAS({ action: "submitToBoard", id: newId, text: msg });
-
-  if (res.status === "success") {
-    addMyPostId(newId);
-    showToast("掲示板に新スレッドを立ち上げたよ！📢", "success");
-    document.getElementById('contact-form').reset();
-    prevStep(1); 
-    switchTab('board-section');
-  } else {
-    showToast("投稿に失敗しました。", "error");
-  }
-}
-
-async function submitReply(event, postId) {
-  event.preventDefault();
-  const input = document.getElementById(`reply-input-${postId}`);
-  const text = input.value.trim();
-  if (!text) return;
-
-  const replyId = Date.now();
-  showToast("返信中...☁️", "info");
-
-  const res = await callGAS({ action: "submitReply", postId: postId, replyId: replyId, text: text });
-
-  if (res.status === "success") {
-    addMyPostId(replyId);
-    showToast("匿名返信を送信しました！💬", "success");
-    input.value = "";
-    loadBoardPosts();
-  } else {
-    showToast("返信に失敗しました。", "error");
-  }
-}
-
-window.deleteBoardPost = function(postId) {
-  showConfirmModal("このスレッドを削除すると、スレッド内の返信もすべて消えちゃうよ。本当に削除する？", async function() {
-    showToast("削除中...🧹", "info");
-    const res = await callGAS({ action: "deleteBoardPost", postId: postId });
-    if (res.status === "success") {
-      showToast("スレッドを削除しました🧹", "info");
-      loadBoardPosts();
-    } else {
-      showToast("削除に失敗しました。", "error");
-    }
-  });
-};
-
-window.deleteReply = function(postId, replyId) {
-  showConfirmModal("この返信メッセージを本当に消しちゃう？", async function() {
-    showToast("削除中...🧹", "info");
-    const res = await callGAS({ action: "deleteReply", postId: postId, replyId: replyId });
-    if (res.status === "success") {
-      showToast("返信を削除しました🧹", "info");
-      loadBoardPosts();
-    } else {
-      showToast("削除に失敗しました。", "error");
-    }
-  });
-};
-
-
-// --- 📊 アンケート機能（GAS連動） ---
-function switchSurveySubTab(subId) {
-  document.querySelectorAll('.survey-sub-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.survey-tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`survey-${subId}-container`).classList.add('active');
-  document.getElementById(`subtab-${subId}`).classList.add('active');
-}
-document.getElementById('subtab-list').onclick = () => switchSurveySubTab('list');
-document.getElementById('subtab-create').onclick = () => switchSurveySubTab('create');
-
-function addSurveyOptionInput() {
-  const container = document.getElementById('survey-options-inputs');
-  const count = container.querySelectorAll('input').length + 1;
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'survey-opt-input';
-  input.placeholder = `選択肢${count}`;
-  input.style.marginTop = '8px';
-  container.appendChild(input);
-}
-document.getElementById('btn-add-survey-opt').onclick = addSurveyOptionInput;
-
-async function loadSurveys() {
-  const list = document.getElementById('survey-list');
-  list.innerHTML = "<p style='text-align:center;'>ロード中...☁️</p>";
-  
-  const res = await callGAS({ action: "getSurveys" });
-  if (res.status !== "success") {
-    list.innerHTML = "<p style='text-align:center;'>アンケートの読み込みに失敗しました。</p>";
-    return;
-  }
-
-  const surveys = res.surveys;
-  const votedList = getVotedSurveys();
-  list.innerHTML = "";
-  
-  if (surveys.length === 0) {
-    list.innerHTML = "<p style='text-align:center; color:#887a7e;'>アンケートはありません。</p>";
-    return;
-  }
-  
-  surveys.forEach((survey) => {
-    if (survey.isPublic === false) return; 
-
-    const totalVotes = survey.options.reduce((sum, opt) => sum + opt.votes, 0);
-    const hasVoted = votedList.includes(survey.id);
-    
-    const card = document.createElement('div');
-    card.className = "survey-card";
-    
-    let contentHtml = "";
-    
-    if (hasVoted) {
-      survey.options.forEach((opt) => {
-        const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
-        contentHtml += `
-          <div class="survey-bar-bg">
-            <div class="survey-bar-fill" style="width: ${percentage}%"></div>
-            <div class="survey-opt-text">
-              <span>${opt.text}</span>
-              <span>${opt.votes}票 (${percentage}%)</span>
-            </div>
-          </div>
-        `;
-      });
-      contentHtml += `<div style="font-size: 0.8rem; color: #887a7e; margin-top: 5px;">投票ありがとうございます！ (合計: ${totalVotes}票)</div>`;
-    } else {
-      let radioButtons = "";
-      survey.options.forEach((opt, idx) => {
-        radioButtons += `
-          <label class="survey-vote-option-label">
-            <input type="radio" name="vote-choice-${survey.id}" value="${idx}">
-            <span>${opt.text}</span>
+      <!-- STEP 2 -->
+      <div id="step-2" class="step">
+        <div class="step-title"><i class="fa-solid fa-tag"></i> Step 2. どんな用途ですか？</div>
+        <div class="choice-grid" id="category-choices">
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="question" required>
+            <span class="choice-icon">💌</span> 管理人への質問・相談
           </label>
-        `;
-      });
-      
-      contentHtml += `
-        <form onsubmit="submitVote(event, '${survey.id}')">
-          <div class="choice-grid" style="gap:5px; margin-bottom:12px;">
-            ${radioButtons}
-          </div>
-          <button type="submit" class="btn btn-next" style="padding: 10px; font-size:0.9rem;"><i class="fa-solid fa-vote-yea"></i> 投票を送信する</button>
-        </form>
-      `;
-    }
-    
-    card.innerHTML = `
-      <h4>${survey.title}</h4>
-      ${contentHtml}
-      <button class="survey-share-btn" onclick="shareSurvey('${survey.id}')">
-        <i class="fa-solid fa-share-nodes"></i> SNSに共有する
-      </button>
-      <div style="clear:both;"></div>
-    `;
-    list.appendChild(card);
-  });
-}
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="feedback">
+            <span class="choice-icon">🌸</span> 感想・メッセージ
+          </label>
+          
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="typing-lost">
+            <span class="choice-icon" style="color:var(--note-color)">🧠</span> 類型迷子・自認タイプ相談
+          </label>
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="public-board">
+            <span class="choice-icon" style="color:var(--note-color)">📢</span> 公開掲示板に投稿する
+          </label>
+          <label class="choice-label note-opt hidden-option">
+            <input type="radio" name="category" value="note-request">
+            <span class="choice-icon" style="color:var(--note-color)">📝</span> noteの記事リクエスト
+          </label>
 
-window.submitVote = async function(event, surveyId) {
-  event.preventDefault();
-  const choice = document.querySelector(`input[name="vote-choice-${surveyId}"]:checked`);
-  
-  if (!choice) { showToast("投票する選択肢を選んでね！", "error"); return; }
-  
-  const optIdx = parseInt(choice.value);
-  showToast("投票送信中...📊", "info");
-  
-  const res = await callGAS({ action: "submitVote", surveyId: surveyId, optIdx: optIdx });
-
-  if (res.status === "success") {
-    addVotedSurvey(surveyId);
-    showToast("投票が完了しました！結果をご覧ください📊", "success");
-    loadSurveys();
-  } else {
-    showToast("投票に失敗しました。", "error");
-  }
-};
-
-async function createNewSurvey() {
-  const title = document.getElementById('new-survey-title').value;
-  const optionInputs = document.querySelectorAll('.survey-opt-input');
-  const isPublic = document.getElementById('new-survey-public').checked;
-  
-  if (!title.trim()) { showToast("タイトルを入力してね！", "error"); return; }
-  
-  const options = [];
-  optionInputs.forEach(input => {
-    if (input.value.trim()) {
-      options.push({ text: input.value.trim(), votes: 0 });
-    }
-  });
-  
-  if (options.length < 2) { showToast("選択肢は最低2つ作ってね！", "error"); return; }
-  
-  showToast("作成中...📊", "info");
-  const newId = "sv-" + Math.floor(1000 + Math.random() * 9000);
-
-  const res = await callGAS({
-    action: "createNewSurvey",
-    id: newId,
-    title: title,
-    options: options,
-    isPublic: isPublic
-  });
-
-  if (res.status === "success") {
-    showToast(isPublic ? "全体公開アンケートを作成したよ！📊" : "非公開アンケートを作成したよ！🤫", "success");
-    document.getElementById('new-survey-title').value = "";
-    document.getElementById('survey-options-inputs').innerHTML = `
-      <input type="text" class="survey-opt-input" placeholder="選択肢1" required>
-      <input type="text" class="survey-opt-input" placeholder="選択肢2" required>
-    `;
-    document.getElementById('new-survey-public').checked = true;
-    switchSurveySubTab('list');
-    loadSurveys();
-  } else {
-    showToast("作成に失敗しました。", "error");
-  }
-}
-document.getElementById('btn-submit-new-survey').onclick = createNewSurvey;
-
-window.shareSurvey = function(surveyId) {
-  const dummyLink = `https://mofu-mitsu.github.io/mofumofu-room/?id=${surveyId}`;
-  navigator.clipboard.writeText(dummyLink).then(() => {
-    showToast("アンケートの共有リンクをコピーしました！🔗", "success");
-  }).catch(() => {
-    showToast("コピーに失敗しちゃいました💦", "error");
-  });
-};
-
-
-// --- 🚪 ログイン & チャット処理（GAS連動） ---
-document.getElementById('login-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const roomId = document.getElementById('login-id').value.trim();
-  const roomPass = document.getElementById('login-pass').value.trim();
-  
-  showToast("入室しています...🔑", "info");
-  
-  const res = await callGAS({
-    action: "loginRoom",
-    id: roomId,
-    password: roomPass
-  });
-
-  if (res.status === "admin_success") {
-    // 【★管理者ダッシュボードログイン成功】
-    isAdminMode = true;
-    currentRoomPass = roomPass; // 管理者パスワードを保持
-    switchTab('admin-section');
-    renderAdminDashboard(res.inquiries);
-    showToast("管理者ダッシュボードを開きました🧸⚙️", "success");
-  } else if (res.status === "success") {
-    // 【通常ユーザーログイン成功】
-    isAdminMode = false;
-    currentRoomId = roomId;
-    currentRoomPass = roomPass;
-    document.getElementById('room-title-id').textContent = roomId.toUpperCase();
-    switchTab('room-section');
-    renderChatMessages(res.replies);
-    showToast("お部屋に入室しました🧸", "success");
-  } else {
-    showToast(res.message, "error");
-  }
-  this.reset();
-});
-
-// 管理者ダッシュボードの表示
-function renderAdminDashboard(inquiries) {
-  const list = document.getElementById('admin-inquiries-list');
-  list.innerHTML = "";
-  
-  if (inquiries.length === 0) {
-    list.innerHTML = "<p style='text-align:center; color:#887a7e;'>お問い合わせはありません。</p>";
-    return;
-  }
-  
-  // 新しいお問い合わせ順（逆順）に並べる
-  inquiries.slice().reverse().forEach(item => {
-    const isSiteRoom = item.replyType === "site";
-    const badgeHtml = isSiteRoom ? `<span class="admin-badge">🚪 お部屋</span>` : `<span class="admin-badge" style="background:#887a7e;">👻 完了</span>`;
-    
-    const card = document.createElement('div');
-    card.className = "admin-item";
-    card.onclick = () => enterRoomAsAdmin(item.id, item.replies);
-    
-    card.innerHTML = `
-      <div class="admin-item-header">
-        <span>番号: ${item.id} (${item.date})</span>
-        ${badgeHtml}
+          <label class="choice-label common-opt">
+            <input type="radio" name="category" value="bug">
+            <span class="choice-icon">🛠️</span> バグ報告・ご要望
+          </label>
+        </div>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step2-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="button" class="btn btn-next" id="btn-step2-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
       </div>
-      <div class="admin-item-title">
-        ${item.origin.toUpperCase()} ＞ ${item.category}
+
+      <!-- STEP 3 -->
+      <div id="step-3" class="step">
+        <div class="step-title"><i class="fa-solid fa-message"></i> Step 3. メッセージ内容</div>
+        <textarea name="message" id="message-box" placeholder="ここになんでも書いてね！" required></textarea>
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step3-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="button" class="btn btn-next" id="btn-step3-next">次へ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
       </div>
-      <div class="admin-item-preview">
-        内容: ${escapeHTML(item.message)}
+
+      <!-- STEP 4 -->
+      <div id="step-4" class="step">
+        <div class="step-title"><i class="fa-solid fa-reply"></i> Step 4. 返信と通知の希望</div>
+        <div class="choice-grid" id="reply-choices">
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="none" required checked>
+            <span class="choice-icon">👻</span> 完全匿名（返信・やり取り不要）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="site">
+            <span class="choice-icon">🚪</span> サイト内でお部屋を作る（ミニDM）
+          </label>
+          <label class="choice-label">
+            <input type="radio" name="reply-type" value="email">
+            <span class="choice-icon">📧</span> メール等で直接返信がほしい
+          </label>
+        </div>
+
+        <div id="site-options" style="margin-top: 15px; display: none; background: #fdfafb; padding: 15px; border-radius: 15px;">
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark);">🔑 お部屋の合言葉（必須）</label>
+          <span class="hint-text">後でお部屋を確認する時に使います！</span>
+          <input type="text" name="password" placeholder="例: mofumofu123">
+          
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark); margin-top:10px; display:block;">🔔 通知用メールアドレス（任意）</label>
+          <span class="hint-text">管理人が返答した際、通知メールを受け取りたい場合は入力してね。</span>
+          <input type="email" name="notify_email" placeholder="通知用メールアドレス">
+        </div>
+
+        <div id="email-options" style="margin-top: 15px; display: none; background: #fdfafb; padding: 15px; border-radius: 15px;">
+          <label style="font-weight:bold; font-size:0.9rem; color:var(--primary-dark);">📫 連絡先（必須）</label>
+          <span class="hint-text">返信先のメールアドレスやSNSアカウント等</span>
+          <input type="text" name="contact" placeholder="連絡先を入力">
+        </div>
+
+        <div class="nav-buttons">
+          <button type="button" class="btn btn-back" id="btn-step4-back"><i class="fa-solid fa-chevron-left"></i> 戻る</button>
+          <button type="submit" class="btn btn-next" style="background:#ff9db0;"><i class="fa-solid fa-paper-plane"></i> 送信する！</button>
+        </div>
       </div>
-    `;
-    list.appendChild(card);
-  });
-}
+    </form>
+  </div>
 
-// 管理人としてお部屋に入る
-function enterRoomAsAdmin(roomId, replies) {
-  isAdminMode = true;
-  currentRoomId = roomId;
-  document.getElementById('room-title-id').textContent = `⚙️ ${roomId.toUpperCase()} (管理者)`;
-  switchTab('room-section');
-  renderChatMessages(replies);
-}
+  <!-- 📢 ② 公開掲示板セクション -->
+  <div id="board-section" class="card">
+    <div class="step-title"><i class="fa-solid fa-comments"></i> 類型note公開スレッド</div>
+    <p style="font-size: 0.85rem; color:#887a7e; margin-bottom: 15px;">類型note界隈のみんなで、自由に匿名で議論・リプライをぶら下げられる場所だよ！</p>
+    <div id="board-posts-list" class="board-posts-list"></div>
+  </div>
 
-function renderChatMessages(replies) {
-  const box = document.getElementById('chat-window-box');
-  box.innerHTML = `<div class="chat-bubble them">初めまして！お部屋が読み込まれました。メッセージをここからやり取りできます。🧸</div>`;
-  
-  replies.forEach(msg => {
-    const bubble = document.createElement('div');
-    bubble.className = `chat-bubble ${msg.sender === 'user' ? 'me' : 'them'}`;
-    
-    // 管理人ログインしている場合は、自分がthemで相手（user）がme。ユーザーログインしている場合はその逆
-    const isMe = (isAdminMode && msg.sender === 'admin') || (!isAdminMode && msg.sender === 'user');
-    bubble.className = `chat-bubble ${isMe ? 'me' : 'them'}`;
-    
-    bubble.innerHTML = `${escapeHTML(msg.text)}<div style="font-size:0.65rem; color:#ccc; text-align:right; margin-top:4px;">${msg.date}</div>`;
-    box.appendChild(bubble);
-  });
-  box.scrollTop = box.scrollHeight;
-}
+  <!-- 📊 ③ アンケートセクション -->
+  <div id="survey-section" class="card">
+    <div class="survey-tabs">
+      <button class="survey-tab-btn active" id="subtab-list">アンケート一覧</button>
+      <button class="survey-tab-btn" id="subtab-create">アンケートを作る</button>
+    </div>
+    <div id="survey-list-container" class="survey-sub-content active">
+      <p style="font-size: 0.9rem; color:#887a7e; text-align:center;">みんなが作ったアンケートだよ！投票すると結果が分かります📊</p>
+      <div id="survey-list" class="survey-list"></div>
+    </div>
+    <div id="survey-create-container" class="survey-sub-content">
+      <div class="step-title"><i class="fa-solid fa-square-poll-horizontal"></i> 新しいアンケートを作成</div>
+      <div class="form-group">
+        <label>アンケートのテーマ（質問タイトル）</label>
+        <input type="text" id="new-survey-title" placeholder="例: あなたの自認タイプは？" required>
+      </div>
+      <div class="form-group">
+        <label>投票の選択肢</label>
+        <div id="survey-options-inputs">
+          <input type="text" class="survey-opt-input" placeholder="選択肢1" required>
+          <input type="text" class="survey-opt-input" placeholder="選択肢2" required>
+        </div>
+        <button type="button" class="btn-add-opt" id="btn-add-survey-opt"><i class="fa-solid fa-plus"></i> 選択肢を追加</button>
+      </div>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="choice-label" style="padding: 10px 15px; font-weight: normal; font-size: 0.9rem;">
+          <input type="checkbox" id="new-survey-public" checked style="display:inline-block; margin-right: 8px;">
+          このアンケートをサイト内の一覧に全体公開する
+        </label>
+        <span class="hint-text">※チェックを外すと一覧に表示されず、リンクを知っている人だけが投票できます。</span>
+      </div>
+      <button type="button" class="btn btn-next" id="btn-submit-new-survey"><i class="fa-solid fa-circle-check"></i> アンケートを公開する</button>
+    </div>
+  </div>
 
-// チャットメッセージ送信（管理者対応）
-async function sendChatMessage() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text || !currentRoomId) return;
-  
-  showToast("送信中...☁️", "info");
+  <!-- 🚪 ④ お部屋確認（ログイン） -->
+  <div id="login-section" class="card">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2><i class="fa-solid fa-door-closed"></i> お部屋に入室</h2>
+      <p>発行された番号と合言葉を入力してね！</p>
+    </div>
+    <form id="login-form">
+      <div class="form-group">
+        <label>お問い合わせ番号</label>
+        <input type="text" id="login-id" placeholder="例: MFM-12345" required>
+      </div>
+      <div class="form-group">
+        <label>お部屋の合言葉（パスワード）</label>
+        <input type="password" id="login-pass" placeholder="合言葉" required>
+      </div>
+      <button type="submit" class="btn btn-next btn-secondary"><i class="fa-solid fa-key"></i> 扉をあける</button>
+    </form>
+  </div>
 
-  const res = await callGAS({
-    action: "sendChatMessage",
-    id: currentRoomId,
-    password: currentRoomPass, // 通常はルームの合言葉、管理者時は管理者パスワード
-    sender: isAdminMode ? "admin" : "user",
-    text: text
-  });
+  <!-- ⚙️ ⑤ 管理者専用ダッシュボード（追加！） -->
+  <div id="admin-section" class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 style="margin:0; color:var(--note-color);"><i class="fa-solid fa-user-gear"></i> 管理者ダッシュボード</h3>
+      <button id="btn-admin-logout" style="background:none; border:none; color:#887a7e; cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</button>
+    </div>
+    <p style="font-size:0.85rem; color:#887a7e;">届いているお問い合わせ一覧だよ。各項目をタップするとお部屋に入ってチャット返信できます🧸</p>
+    <div id="admin-inquiries-list" style="display:flex; flex-direction:column; gap:10px;">
+      <!-- お問い合わせ一覧が動的に並ぶよ -->
+    </div>
+  </div>
 
-  if (res.status === "success") {
-    renderChatMessages(res.replies);
-    input.value = "";
-    showToast("メッセージを送信したよ！🔔", "success");
-  } else {
-    showToast("送信に失敗しました。", "error");
-  }
-}
-document.getElementById('btn-send-chat').onclick = sendChatMessage;
+  <!-- 💬 ⑥ お部屋画面（チャットルーム） -->
+  <div id="room-section" class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h3 style="margin:0; color: var(--secondary-color);"><i class="fa-solid fa-door-open"></i> <span id="room-title-id">MFM-12345</span></h3>
+      <button id="btn-leave-room" style="background:none; border:none; color:#887a7e; cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i> 退出する</button>
+    </div>
+    <div class="chat-window" id="chat-window-box"></div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" placeholder="メッセージを追加する...">
+      <button type="button" id="btn-send-chat"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
 
-// 退出処理
-document.getElementById('btn-leave-room').onclick = function() {
-  if (isAdminMode) {
-    // 管理者の場合はチャットからダッシュボードに戻る
-    currentRoomId = null;
-    showToast("管理者メニューに戻ります。", "info");
-    switchTab('admin-section');
-    // 最新情報を再読み込み
-    reloadAdminDashboard();
-  } else {
-    // ユーザーの場合はチャットから退出してログインへ
-    currentRoomId = null;
-    currentRoomPass = null;
-    switchTab('login-section');
-    showToast("お部屋から退出しました。", "info");
-  }
-};
+  <!-- 🎉 ⑦ 送信完了画面（ミニDM用お部屋番号付き） -->
+  <div id="success-site-section" class="card">
+    <div style="text-align: center;">
+      <i class="fa-solid fa-door-open" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 10px;"></i>
+      <h2>お部屋ができました！🧸</h2>
+      <p>あなた専用の「お問い合わせ番号」です！<br>返信を確認する時に必要になるのでコピーしてね📝</p>
+      <div class="copy-container">
+        <div class="id-box" id="generated-id">MFM-00000</div>
+        <button type="button" class="btn-copy" id="btn-copy-id" title="コピーする"><i class="fa-solid fa-copy"></i> コピー</button>
+      </div>
+      <button class="btn btn-next btn-secondary" style="width:100%; margin-top: 15px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+    </div>
+  </div>
 
-// 管理者ログアウト
-document.getElementById('btn-admin-logout').onclick = function() {
-  currentRoomId = null;
-  currentRoomPass = null;
-  isAdminMode = false;
-  switchTab('login-section');
-  showToast("管理者メニューからログアウトしました。", "info");
-};
+  <!-- 🎉 ⑧ 送信完了画面（通常の返信不要/メール用）（追加！） -->
+  <div id="success-normal-section" class="card">
+    <div style="text-align: center;">
+      <i class="fa-solid fa-paper-plane" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 10px;"></i>
+      <h2>送信完了しました！🌸</h2>
+      <p>管理人へメッセージを大切にお届けしました！<br>確認するまで、のんびり待っててね☁️</p>
+      <button class="btn btn-next" style="width:100%; margin-top: 25px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+    </div>
+  </div>
 
-// 管理者ダッシュボード再読み込み用
-async function reloadAdminDashboard() {
-  const res = await callGAS({
-    action: "loginRoom",
-    id: "ADMIN",
-    password: currentRoomPass
-  });
-  if (res.status === "admin_success") {
-    renderAdminDashboard(res.inquiries);
-  }
-}
+</div>
 
+<!-- ☁️ 自作の確認モーダル -->
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h3><i class="fa-solid fa-triangle-exclamation" style="color: #ff9494;"></i> 本当に消しちゃう？</h3>
+    <p id="confirm-modal-message">この投稿を削除すると元に戻せないよ！</p>
+    <div class="modal-buttons">
+      <button class="btn btn-back" id="confirm-cancel-btn">やめとく</button>
+      <button class="btn btn-next" id="confirm-ok-btn" style="background:#ff9494; box-shadow: 0 4px 0 #ff5e5e;">消しちゃう🧹</button>
+    </div>
+  </div>
+</div>
 
-// --- 📩 問い合わせ送信処理（完了画面切り替え） ---
-document.getElementById('contact-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const replyType = document.querySelector('input[name="reply-type"]:checked').value;
-  const origin = document.querySelector('input[name="origin"]:checked').value;
-  const category = document.querySelector('input[name="category"]:checked').value;
-  const message = document.getElementById('message-box').value;
-  const password = document.querySelector('input[name="password"]').value;
-  const notifyEmail = document.querySelector('input[name="notify_email"]').value;
-  const contact = document.querySelector('input[name="contact"]').value;
+<div id="toast-container" class="toast-container"></div>
 
-  const randomNum = Math.floor(10000 + Math.random() * 90000);
-  const generatedId = `MFM-${randomNum}`;
-
-  showToast("送信中...☁️", "info");
-
-  const res = await callGAS({
-    action: "sendInquiry",
-    id: generatedId,
-    origin: origin,
-    category: category,
-    message: message,
-    replyType: replyType,
-    password: password,
-    notify_email: notifyEmail,
-    contact: contact
-  });
-
-  if (res.status === "success") {
-    document.getElementById('contact-form').reset();
-    prevStep(1); // フォームをStep1に初期化
-    
-    if (replyType === 'site') {
-      // サイト内やり取り（ミニDM）の場合：番号付き完了画面へ
-      document.getElementById('generated-id').textContent = generatedId;
-      showToast("送信が成功してお部屋ができたよ！🔑", "success");
-      document.getElementById('form-section').classList.remove('active');
-      document.getElementById('success-site-section').classList.add('active');
-    } else {
-      // 返信不要 / メール希望の場合：通常の完了画面へ
-      showToast("送信が完了しました！🌸", "success");
-      document.getElementById('form-section').classList.remove('active');
-      document.getElementById('success-normal-section').classList.add('active');
-    }
-  } else {
-    showToast("送信に失敗しました。", "error");
-  }
-});
-
-
-// --- 📋 コピー機能 ---
-document.getElementById('btn-copy-id').onclick = function() {
-  const idText = document.getElementById('generated-id').textContent;
-  navigator.clipboard.writeText(idText).then(() => {
-    showToast(`お問い合わせ番号「${idText}」をコピーしたよ！📋`, "success");
-  }).catch(() => {
-    showToast("コピーに失敗しちゃった…💦", "error");
-  });
-};
-
-
-// ヘルパー関数
-function getVotedSurveys() {
-  const voted = localStorage.getItem('mofu_voted_surveys');
-  return voted ? JSON.parse(voted) : [];
-}
-function addVotedSurvey(id) {
-  const voted = getVotedSurveys();
-  voted.push(id);
-  localStorage.setItem('mofu_voted_surveys', JSON.stringify(voted));
-}
-function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
-    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-  );
-}
-
-window.onload = function() {
-  if (GAS_API_URL && !GAS_API_URL.startsWith("ここに")) {
-    loadBoardPosts();
-    loadSurveys();
-  } else {
-    showToast("「app.js」の一行目にGASのウェブアプリURLを貼り付けてね！☁️", "info");
-  }
-};
+<script src="app.js"></script>
+</body>
+</html>
