@@ -274,7 +274,7 @@ async function loadBoardPosts() {
       <div class="board-post-body">${escapeHTML(post.text)}</div>
       ${repliesHtml}
       <form class="reply-form" onsubmit="submitReply(event, ${post.id})">
-        <input type="text" id="reply-input-${post.id}" placeholder="このスレに匿名返信する..." required>
+        <textarea id="reply-input-${post.id}" placeholder="このスレに匿名返信する" required></textarea>
         <button type="submit" class="btn-reply-send">返信する</button>
       </form>
     `;
@@ -497,21 +497,66 @@ async function createNewSurvey() {
   });
 
   if (res.status === "success") {
-    showToast(isPublic ? "全体公開アンケートを作成したよ！📊" : "非公開アンケートを作成したよ！🤫", "success");
+    // フォームをリセット
     document.getElementById('new-survey-title').value = "";
     document.getElementById('survey-options-inputs').innerHTML = `
       <input type="text" class="survey-opt-input" placeholder="選択肢1" required>
       <input type="text" class="survey-opt-input" placeholder="選択肢2" required>
     `;
     document.getElementById('new-survey-public').checked = true;
+    
+    // 一覧を再読み込みしてタブを切り替え
     switchSurveySubTab('list');
     loadSurveys();
+    
+    // 【★追加】URL共有モーダルを表示する
+    showShareModal(newId, isPublic);
+
   } else {
     showToast("作成に失敗しました。", "error");
   }
 }
+
+// ボタンにイベントを再登録
 document.getElementById('btn-submit-new-survey').onclick = createNewSurvey;
 
+// --- 🔗 共有モーダルの制御（新規追加） ---
+function showShareModal(surveyId, isPublic) {
+  const modal = document.getElementById('share-modal');
+  const urlInput = document.getElementById('share-url-input');
+  const msg = document.getElementById('share-modal-message');
+  
+  // 共有用のURL（※自分のGitHub PagesのURLに合わせてね）
+  const shareUrl = `https://mofu-mitsu.github.io/mofumofu-room/?id=${surveyId}`;
+  urlInput.value = shareUrl;
+  
+  if (isPublic) {
+    msg.innerHTML = "アンケートを<b>全体公開</b>で作成したよ！<br>以下のリンクからSNSなどにも共有できます📊";
+  } else {
+    msg.innerHTML = "<b>非公開（秘密）</b>で作成したよ！<br>このリンクを知っている人だけが投票できます🤫<br><span style='color:#ff9494; font-weight:bold; font-size:0.8rem;'>※一覧には表示されないので、必ず今コピーしてね！</span>";
+  }
+  
+  modal.classList.add('active');
+  
+  // コピーボタンの処理
+  document.getElementById('share-copy-btn').onclick = function() {
+    // スマホでも確実にコピーできるようにinputを選択
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); 
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast("リンクをコピーしました！🔗", "success");
+    }).catch(() => {
+      // クリップボードAPIが失敗した時のバックアップ
+      document.execCommand("copy");
+      showToast("リンクをコピーしました！🔗", "success");
+    });
+  };
+  
+  // 閉じるボタンの処理
+  document.getElementById('share-close-btn').onclick = function() {
+    modal.classList.remove('active');
+  };
+}
 window.shareSurvey = function(surveyId) {
   const dummyLink = `https://mofu-mitsu.github.io/mofumofu-room/?id=${surveyId}`;
   navigator.clipboard.writeText(dummyLink).then(() => {
