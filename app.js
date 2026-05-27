@@ -372,6 +372,7 @@ function addSurveyOptionInput() {
 }
 document.getElementById('btn-add-survey-opt').onclick = addSurveyOptionInput;
 
+// ★ URLパラメータを解析して、特定のアンケートだけを表示する機能を強化！
 async function loadSurveys() {
   const list = document.getElementById('survey-list');
   list.innerHTML = "<p style='text-align:center;'>ロード中...☁️</p>";
@@ -390,63 +391,106 @@ async function loadSurveys() {
     list.innerHTML = "<p style='text-align:center; color:#887a7e;'>アンケートはありません。</p>";
     return;
   }
+
+  // 🔍 URLから ?id=sv-XXXX を探す
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('id');
+
+  // 【A】もし特定のアンケートURLからアクセスされた場合（単体表示モード）
+  if (targetId && targetId.startsWith("sv-")) {
+    const targetSurvey = surveys.find(s => s.id === targetId);
+    
+    if (targetSurvey) {
+      // 非公開でも、IDを知っていれば表示する！
+      renderSurveyCard(targetSurvey, votedList, list, true);
+      
+      // 一覧に戻るボタンを追加
+      const backBtn = document.createElement('button');
+      backBtn.className = "btn btn-back";
+      backBtn.style.width = "100%";
+      backBtn.style.marginTop = "15px";
+      backBtn.innerHTML = "<i class='fa-solid fa-list'></i> 他のアンケート一覧を見る";
+      backBtn.onclick = () => {
+        // URLの ?id=... を消して、一覧を再読み込み
+        window.history.pushState({}, document.title, window.location.pathname);
+        loadSurveys();
+      };
+      list.appendChild(backBtn);
+      return; // ここで処理を終了して、他のアンケートは出さない
+    } else {
+      showToast("指定されたアンケートが見つからなかったよ💦", "error");
+      // 見つからなかったらURLを綺麗にして普通の一覧へ
+      window.history.pushState({}, document.title, window.location.pathname);
+    }
+  }
   
+  // 【B】通常の一覧表示モード（非公開は出さない）
   surveys.forEach((survey) => {
     if (survey.isPublic === false) return; 
-
-    const totalVotes = survey.options.reduce((sum, opt) => sum + opt.votes, 0);
-    const hasVoted = votedList.includes(survey.id);
-    
-    const card = document.createElement('div');
-    card.className = "survey-card";
-    
-    let contentHtml = "";
-    
-    if (hasVoted) {
-      survey.options.forEach((opt) => {
-        const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
-        contentHtml += `
-          <div class="survey-bar-bg">
-            <div class="survey-bar-fill" style="width: ${percentage}%"></div>
-            <div class="survey-opt-text">
-              <span>${opt.text}</span>
-              <span>${opt.votes}票 (${percentage}%)</span>
-            </div>
-          </div>
-        `;
-      });
-      contentHtml += `<div style="font-size: 0.8rem; color: #887a7e; margin-top: 5px;">投票ありがとうございます！ (合計: ${totalVotes}票)</div>`;
-    } else {
-      let radioButtons = "";
-      survey.options.forEach((opt, idx) => {
-        radioButtons += `
-          <label class="survey-vote-option-label">
-            <input type="radio" name="vote-choice-${survey.id}" value="${idx}">
-            <span>${opt.text}</span>
-          </label>
-        `;
-      });
-      
-      contentHtml += `
-        <form onsubmit="submitVote(event, '${survey.id}')">
-          <div class="choice-grid" style="gap:5px; margin-bottom:12px;">
-            ${radioButtons}
-          </div>
-          <button type="submit" class="btn btn-next" style="padding: 10px; font-size:0.9rem;"><i class="fa-solid fa-vote-yea"></i> 投票を送信する</button>
-        </form>
-      `;
-    }
-    
-    card.innerHTML = `
-      <h4>${survey.title}</h4>
-      ${contentHtml}
-      <button class="survey-share-btn" onclick="shareSurvey('${survey.id}')">
-        <i class="fa-solid fa-share-nodes"></i> SNSに共有する
-      </button>
-      <div style="clear:both;"></div>
-    `;
-    list.appendChild(card);
+    renderSurveyCard(survey, votedList, list, false);
   });
+}
+
+// アンケートのカードを作る処理（共通化してスッキリさせたよ！）
+function renderSurveyCard(survey, votedList, container, isSingleView) {
+  const totalVotes = survey.options.reduce((sum, opt) => sum + opt.votes, 0);
+  const hasVoted = votedList.includes(survey.id);
+  
+  const card = document.createElement('div');
+  card.className = "survey-card";
+  
+  // 秘密のアンケートを単体表示している場合はバッジをつける
+  const secretBadge = (!survey.isPublic && isSingleView) 
+    ? `<span style="background:#ff9db0; color:white; font-size:0.7rem; padding:2px 6px; border-radius:5px; margin-bottom:5px; display:inline-block;">🤫 秘密のアンケート</span><br>` 
+    : "";
+  
+  let contentHtml = "";
+  
+  if (hasVoted) {
+    survey.options.forEach((opt) => {
+      const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
+      contentHtml += `
+        <div class="survey-bar-bg">
+          <div class="survey-bar-fill" style="width: ${percentage}%"></div>
+          <div class="survey-opt-text">
+            <span>${opt.text}</span>
+            <span>${opt.votes}票 (${percentage}%)</span>
+          </div>
+        </div>
+      `;
+    });
+    contentHtml += `<div style="font-size: 0.8rem; color: #887a7e; margin-top: 5px;">投票ありがとうございます！ (合計: ${totalVotes}票)</div>`;
+  } else {
+    let radioButtons = "";
+    survey.options.forEach((opt, idx) => {
+      radioButtons += `
+        <label class="survey-vote-option-label">
+          <input type="radio" name="vote-choice-${survey.id}" value="${idx}">
+          <span>${opt.text}</span>
+        </label>
+      `;
+    });
+    
+    contentHtml += `
+      <form onsubmit="submitVote(event, '${survey.id}')">
+        <div class="choice-grid" style="gap:5px; margin-bottom:12px;">
+          ${radioButtons}
+        </div>
+        <button type="submit" class="btn btn-next" style="padding: 10px; font-size:0.9rem;"><i class="fa-solid fa-vote-yea"></i> 投票を送信する</button>
+      </form>
+    `;
+  }
+  
+  card.innerHTML = `
+    ${secretBadge}
+    <h4>${survey.title}</h4>
+    ${contentHtml}
+    <button class="survey-share-btn" onclick="shareSurvey('${survey.id}')">
+      <i class="fa-solid fa-share-nodes"></i> SNSに共有する
+    </button>
+    <div style="clear:both;"></div>
+  `;
+  container.appendChild(card);
 }
 
 window.submitVote = async function(event, surveyId) {
@@ -809,6 +853,15 @@ function escapeHTML(str) {
 }
 
 window.onload = function() {
+  // URLにアンケートIDが含まれているかチェック！
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('id');
+  
+  // もし共有リンクから飛んできた場合は、自動で「アンケート」タブを開く！
+  if (targetId && targetId.startsWith("sv-")) {
+    switchTab('survey-section');
+  }
+  
   if (GAS_API_URL && !GAS_API_URL.startsWith("ここに")) {
     loadBoardPosts();
     loadSurveys();
