@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body ontouchstart="">
 
 <div class="container">
   
@@ -53,13 +53,21 @@
     </button>
   </div>
 
-  <!-- 📥 ① お問い合わせフォーム -->
+  <!-- 📥 ① お問い合わせフォーム（※消えていた2行を復活！） -->
   <div id="form-section" class="card active">
     <form id="contact-form">
       
       <!-- STEP 1 -->
       <div id="step-1" class="step active">
         <div class="step-title"><i class="fa-solid fa-map-location-dot"></i> Step 1. どこから来ましたか？</div>
+        
+        <!-- 📱 LINE Bot への導線ボタン（クラス化してポコッと動くように！） -->
+        <a href="https://lin.ee/ここにLINEのURL" target="_blank" style="text-decoration: none;">
+          <div class="btn-line">
+            <i class="fa-brands fa-line"></i> LINEで相談する！🐈‍⬛
+          </div>
+        </a>
+
         <div class="choice-grid">
           <label class="choice-label">
             <input type="radio" name="origin" value="mofumitsu" required>
@@ -233,7 +241,7 @@
     </form>
   </div>
 
-  <!-- ⚙️ ⑤ 管理者専用ダッシュボード（追加！） -->
+  <!-- ⚙️ ⑤ 管理者専用ダッシュボード -->
   <div id="admin-section" class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
       <h3 style="margin:0; color:var(--note-color);"><i class="fa-solid fa-user-gear"></i> 管理者ダッシュボード</h3>
@@ -268,17 +276,17 @@
         <div class="id-box" id="generated-id">MFM-00000</div>
         <button type="button" class="btn-copy" id="btn-copy-id" title="コピーする"><i class="fa-solid fa-copy"></i> コピー</button>
       </div>
-      <button class="btn btn-next btn-secondary" style="width:100%; margin-top: 15px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+      <button class="btn btn-next btn-secondary" style="width:100%; margin-top: 15px;" onclick="resetToTop()"><i class="fa-solid fa-house"></i> トップに戻る</button>
     </div>
   </div>
 
-  <!-- 🎉 ⑧ 送信完了画面（通常の返信不要/メール用）（追加！） -->
+  <!-- 🎉 ⑧ 送信完了画面（通常の返信不要/メール用） -->
   <div id="success-normal-section" class="card">
     <div style="text-align: center;">
       <i class="fa-solid fa-paper-plane" style="font-size: 3rem; color: var(--secondary-color); margin-bottom: 10px;"></i>
       <h2>送信完了しました！🌸</h2>
       <p>管理人へメッセージを大切にお届けしました！<br>確認するまで、のんびり待っててね☁️</p>
-      <button class="btn btn-next" style="width:100%; margin-top: 25px;" onclick="location.reload()"><i class="fa-solid fa-house"></i> トップに戻る</button>
+      <button class="btn btn-next" style="width:100%; margin-top: 25px;" onclick="resetToTop()"><i class="fa-solid fa-house"></i> トップに戻る</button>
     </div>
   </div>
 
@@ -295,7 +303,20 @@
     </div>
   </div>
 </div>
-
+<!-- ☁️ アンケート作成完了・URL共有モーダル（ここを追加！） -->
+<div id="share-modal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 380px;">
+    <h3><i class="fa-solid fa-link" style="color: var(--secondary-color);"></i> アンケート完成！</h3>
+    <p id="share-modal-message" style="margin-bottom: 10px;"></p>
+    <div class="copy-container" style="margin-top: 5px; margin-bottom: 15px;">
+      <input type="text" id="share-url-input" readonly style="flex:1; padding: 12px; font-size: 0.85rem; border: 2px solid #f0ecf4; border-radius: 12px; text-align:center; color: var(--primary-dark); font-weight: bold;">
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-back" id="share-close-btn" style="padding:12px;">閉じる</button>
+      <button class="btn btn-next" id="share-copy-btn" style="padding:12px; background:var(--secondary-color); box-shadow: 0 4px 0 #8cbdd0;"><i class="fa-solid fa-copy"></i> コピーする</button>
+    </div>
+  </div>
+</div>
 <div id="toast-container" class="toast-container"></div>
 
 <script src="app.js"></script>
