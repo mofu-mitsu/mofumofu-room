@@ -869,3 +869,17 @@ window.onload = function() {
     showToast("「app.js」の一行目にGASのウェブアプリURLを貼り付けてね！☁️", "info");
   }
 };
+
+window.resetToTop = function() {
+  document.getElementById('contact-form').reset(); // フォームの中身を空にする
+  
+  // 強制的にStep 1に戻す
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+  document.getElementById('step-1').classList.add('active');
+  
+  // 「新しく送る」タブに切り替える
+  switchTab('form-section'); 
+  
+  // 画面の一番上にスクロールする
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
