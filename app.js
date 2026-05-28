@@ -846,10 +846,11 @@ function addVotedSurvey(id) {
   voted.push(id);
   localStorage.setItem('mofu_voted_surveys', JSON.stringify(voted));
 }
+// ⬇️ この関数を見つけて、丸ごとこれに上書きしてね！
 function escapeHTML(str) {
   return str.replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-  );
+  ).replace(/\n/g, '<br>'); // ← 💡ここが「改行を<br>タグに変換する」魔法！
 }
 
 window.onload = function() {
