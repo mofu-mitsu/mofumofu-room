@@ -883,3 +883,16 @@ window.resetToTop = function() {
   // 画面の一番上にスクロールする
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
+
+document.getElementById('chat-input').addEventListener('keydown', function(e) {
+  // 日本語入力中の変換のEnterは無視する
+  if (e.isComposing || e.keyCode === 229) {
+    return;
+  }
+  
+  // Enter単体押しの場合、改行せずに送信する
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault(); // テキストエリア内の改行を防ぐ
+    sendChatMessage();  // 送信処理を呼び出す
+  }
+});
