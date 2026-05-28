@@ -884,13 +884,20 @@ window.resetToTop = function() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// ⬇️ チャット入力欄でのEnterキー制御（PC・スマホ対応版！）
 document.getElementById('chat-input').addEventListener('keydown', function(e) {
   // 日本語入力中の変換のEnterは無視する
   if (e.isComposing || e.keyCode === 229) {
     return;
   }
   
-  // Enter単体押しの場合、改行せずに送信する
+  // 📱スマホやタブレットの場合は、ここで処理を止めて普通に改行させる！
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    return;
+  }
+  
+  // 💻PC環境の場合のみ：Enter単体押しで改行せずに送信する
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault(); // テキストエリア内の改行を防ぐ
     sendChatMessage();  // 送信処理を呼び出す
