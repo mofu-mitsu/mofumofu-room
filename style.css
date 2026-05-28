@@ -851,3 +851,23 @@ textarea { min-height: 100px; resize: vertical; }
   transform: translateY(3px) scale(0.95);
   box-shadow: none;
 }
+/* 💬 チャット入力エリア（textarea対応！） */
+.chat-input-area { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input-area textarea { 
+  flex: 1; padding: 10px 15px; border: 2px solid #f0ecf4; border-radius: 15px; 
+  font-family: inherit; font-size: 0.9rem; resize: vertical; min-height: 42px; max-height: 120px;
+  box-sizing: border-box;
+}
+.chat-input-area textarea:focus { outline: none; border-color: var(--primary-color); }
+
+/* 送信ボタンの丸みとポコッと沈むアニメーション */
+.chat-input-area button { 
+  background: var(--primary-color); border: none; color: white; 
+  width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s; box-shadow: 0 3px 0 var(--primary-dark);
+}
+.chat-input-area button:active {
+  transform: translateY(3px) scale(0.95);
+  box-shadow: none;
+}
